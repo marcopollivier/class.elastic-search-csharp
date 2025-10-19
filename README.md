@@ -34,20 +34,89 @@ ElasticSearchPOC/
 
 ## Como Executar
 
-### 1. Iniciar Elasticsearch
+### 1. Iniciar Elasticsearch e Kibana
 ```bash
-docker run -d --name elasticsearch \
-  -p 9200:9200 \
-  -e "discovery.type=single-node" \
-  -e "xpack.security.enabled=false" \
-  docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+docker-compose up -d
 ```
 
-### 2. Executar o Projeto
+### 2. Carregar Dados de Exemplo (Opcional)
+```bash
+./load-sample-data.sh
+```
+
+### 3. Executar o Projeto .NET
 ```bash
 cd ElasticSearchPOC
 dotnet run
 ```
+
+## Visualização no Kibana
+
+### Acessos:
+- **Elasticsearch API**: `http://localhost:9200`
+- **Kibana Interface**: `http://localhost:5601`
+
+### Como usar o Discover (Exploração de Dados):
+
+#### 1. **Criar Index Pattern**
+- Acesse: `http://localhost:5601`
+- Vá em **Stack Management** → **Index Patterns**
+- Clique **Create index pattern**
+- Digite: `products*`
+- Selecione **createdAt** como time field
+- Clique **Create index pattern**
+
+#### 2. **Explorar no Discover**
+- Menu lateral → **Discover**
+- Agora você pode fazer consultas visuais:
+
+**Exemplos de Consultas:**
+```
+# Filtrar por categoria
+category:"Eletrônicos"
+category:"Periféricos"
+
+# Buscar por nome
+name:"Notebook"
+name:*Mouse*
+
+# Filtrar por preço
+price:[300 TO 500]    # Entre R$ 300-500
+price:>1000           # Acima de R$ 1000
+
+# Combinar filtros
+category:"Periféricos" AND price:<400
+```
+
+#### 3. **Usar Filtros Visuais**
+- Clique no **+** ao lado de qualquer campo nos resultados
+- Isso cria filtros automáticos
+- Clique em **Add field** para mostrar campos específicos
+
+### Como criar Dashboards:
+
+#### 1. **Criar Dashboard**
+- Menu lateral → **Dashboard**
+- Clique **Create dashboard**
+- Clique **Create visualization**
+
+#### 2. **Visualizações Sugeridas:**
+
+**A) Gráfico de Pizza - Produtos por Categoria:**
+- Tipo: **Pie**
+- Buckets → Add → Split slices
+- Aggregation: **Terms**
+- Field: **category.keyword**
+
+**B) Gráfico de Barras - Preços por Produto:**
+- Tipo: **Vertical bar**
+- Y-axis → Aggregation: **Max**, Field: **price**
+- X-axis → Buckets → Add → X-axis
+- Aggregation: **Terms**, Field: **name.keyword**
+
+**C) Métrica - Valor Total:**
+- Tipo: **Metric**
+- Aggregation: **Sum**, Field: **price**
 
 ## Arquitetura e Boas Práticas
 
