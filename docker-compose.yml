@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Elasticsearch para dados da aplicação
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: elasticsearch-poc
@@ -16,6 +17,24 @@ services:
     networks:
       - elastic
 
+  # Elasticsearch para logs da aplicação
+  elasticsearch-logs:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch-logs
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=logs-cluster
+    ports:
+      - "9201:9200"
+      - "9301:9300"
+    volumes:
+      - elasticsearch_logs_data:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
+  # Kibana único conectado ao Elasticsearch de dados
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
     container_name: kibana-poc
@@ -26,11 +45,29 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+      - elasticsearch-logs
     networks:
       - elastic
 
+  # Aplicação .NET
+  app:
+    build:
+      context: ./ElasticSearchPOC
+      dockerfile: Dockerfile
+    container_name: elasticsearch-poc-app
+    depends_on:
+      - elasticsearch
+      - elasticsearch-logs
+    networks:
+      - elastic
+    environment:
+      - ELASTICSEARCH_DATA_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_LOGS_URL=http://elasticsearch-logs:9200
+
 volumes:
   elasticsearch_data:
+    driver: local
+  elasticsearch_logs_data:
     driver: local
 
 networks:

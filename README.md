@@ -1,6 +1,16 @@
 # Elasticsearch POC com .NET 9
 
-Este projeto demonstra os conceitos básicos do Elasticsearch usando .NET 9 e C#.
+Este projeto demonstra os conceitos básicos do Elasticsearch usando .NET 9 e C#, incluindo uma arquitetura com instâncias separadas para dados da aplicação e logs.
+
+## Arquitetura
+
+### Instâncias Elasticsearch:
+- **Dados da Aplicação**: `localhost:9200` - Índice `products`
+- **Logs da Aplicação**: `localhost:9201` - Índice `application-logs`
+
+### Interfaces Kibana:
+- **Dados**: `localhost:5601` - Visualização dos produtos
+- **Logs**: `localhost:5602` - Monitoramento de logs da aplicação
 
 ## Conceitos Demonstrados
 
@@ -21,15 +31,21 @@ Este projeto demonstra os conceitos básicos do Elasticsearch usando .NET 9 e C#
 - Update: Reindexação de documentos
 - Delete: Remoção de documentos
 
+### 5. **Logging Centralizado**
+- Logs estruturados enviados para Elasticsearch separado
+- Rastreamento de operações da aplicação
+- Monitoramento de erros e eventos
+
 ## Estrutura do Projeto
 
 ```
 ElasticSearchPOC/
 ├── Models/
-│   └── Product.cs          # Modelo de dados
+│   └── Product.cs              # Modelo de dados
 ├── Services/
-│   └── ElasticSearchService.cs  # Serviço com operações ES
-└── Program.cs              # Demonstração das funcionalidades
+│   ├── ElasticSearchService.cs # Serviço com operações ES
+│   └── LoggingService.cs       # Serviço de logging
+└── Program.cs                  # Demonstração das funcionalidades
 ```
 
 ## Como Executar
@@ -53,12 +69,14 @@ dotnet run
 ## Visualização no Kibana
 
 ### Acessos:
-- **Elasticsearch API**: `http://localhost:9200`
-- **Kibana Interface**: `http://localhost:5601`
+- **Elasticsearch API (Dados)**: `http://localhost:9200`
+- **Elasticsearch API (Logs)**: `http://localhost:9201`
+- **Kibana Interface (Dados)**: `http://localhost:5601`
+- **Kibana Interface (Logs)**: `http://localhost:5602`
 
 ### Como usar o Discover (Exploração de Dados):
 
-#### 1. **Criar Index Pattern**
+#### 1. **Criar Index Pattern - Dados**
 - Acesse: `http://localhost:5601`
 - Vá em **Stack Management** → **Index Patterns**
 - Clique **Create index pattern**
@@ -66,11 +84,19 @@ dotnet run
 - Selecione **createdAt** como time field
 - Clique **Create index pattern**
 
-#### 2. **Explorar no Discover**
+#### 2. **Criar Index Pattern - Logs**
+- Acesse: `http://localhost:5602`
+- Vá em **Stack Management** → **Index Patterns**
+- Clique **Create index pattern**
+- Digite: `application-logs*`
+- Selecione **timestamp** como time field
+- Clique **Create index pattern**
+
+#### 3. **Explorar no Discover**
 - Menu lateral → **Discover**
 - Agora você pode fazer consultas visuais:
 
-**Exemplos de Consultas:**
+**Exemplos de Consultas (Dados):**
 ```
 # Filtrar por categoria
 category:"Eletrônicos"
@@ -88,7 +114,25 @@ price:>1000           # Acima de R$ 1000
 category:"Periféricos" AND price:<400
 ```
 
-#### 3. **Usar Filtros Visuais**
+**Exemplos de Consultas (Logs):**
+```
+# Filtrar por nível
+level:"ERROR"
+level:"INFO"
+
+# Buscar por fonte
+source:"Program"
+source:"ElasticService"
+
+# Filtrar por mensagem
+message:*produto*
+message:*erro*
+
+# Combinar filtros
+level:"ERROR" AND source:"Program"
+```
+
+#### 4. **Usar Filtros Visuais**
 - Clique no **+** ao lado de qualquer campo nos resultados
 - Isso cria filtros automáticos
 - Clique em **Add field** para mostrar campos específicos
@@ -118,12 +162,27 @@ category:"Periféricos" AND price:<400
 - Tipo: **Metric**
 - Aggregation: **Sum**, Field: **price**
 
+**D) Logs por Nível (Kibana Logs):**
+- Tipo: **Pie**
+- Buckets → Add → Split slices
+- Aggregation: **Terms**
+- Field: **level.keyword**
+
+**E) Timeline de Logs:**
+- Tipo: **Line**
+- Y-axis → Aggregation: **Count**
+- X-axis → Aggregation: **Date Histogram**, Field: **timestamp**
+
 ## Arquitetura e Boas Práticas
 
 ### **Separação de Responsabilidades**
 - `Models`: Entidades de domínio
 - `Services`: Lógica de acesso ao Elasticsearch
 - `Program`: Orquestração e demonstração
+
+### **Separação de Dados**
+- **Instância Principal**: Dados de negócio (produtos)
+- **Instância de Logs**: Logs da aplicação e monitoramento
 
 ### **Configuração de Mapeamento**
 ```csharp
@@ -141,6 +200,11 @@ description = new { type = "text", analyzer = "standard" }
 - **Busca Textual**: Usando campos `text` com analyzers
 - **Multi-Match**: Busca em múltiplos campos simultaneamente
 
+### **Logging Estruturado**
+- Logs com timestamp, nível, mensagem e fonte
+- Separação entre logs de aplicação e dados de negócio
+- Rastreamento de operações e erros
+
 ## Conceitos Avançados para Explorar
 
 1. **Aggregations**: Análise e sumarização de dados
@@ -148,3 +212,5 @@ description = new { type = "text", analyzer = "standard" }
 3. **Scoring**: Relevância e ordenação de resultados
 4. **Bulk Operations**: Operações em lote para performance
 5. **Index Templates**: Configuração automática de índices
+6. **Log Analysis**: Análise de padrões em logs
+7. **Alerting**: Configuração de alertas baseados em logs
